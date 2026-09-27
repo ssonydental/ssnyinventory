@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B1D3A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inventory">
+<title>SSONY Inventory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0B1D3A; --red:#C8102E; --lav:#C8B8E8; --lavbg:#EDE7F8; --lavtext:#3B2E63;
+  --bg:#F6F4FA; --card:#fff; --line:#E2DBF0; --muted:#555B70; --sub:#D9D0EE;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{font-family:Inter,system-ui,sans-serif;color:var(--navy);min-height:100vh;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.wrap{max-width:720px;margin:0 auto}
+
+header{background:var(--navy);color:#fff;padding:calc(env(safe-area-inset-top) + 18px) 16px 20px;position:sticky;top:0;z-index:50}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--lav);font-weight:600}
+h1{font-family:'Playfair Display',Georgia,serif;font-size:30px;font-weight:700;line-height:1.1;margin-top:4px}
+.hsub{font-size:14px;color:var(--sub);margin-top:4px}
+.back{width:44px;height:44px;margin:-6px 0 2px -10px;display:flex;align-items:center;justify-content:center;background:none;border:0;border-radius:22px;color:#fff}
+.back:active{background:rgba(255,255,255,.12)}
+
+#syncBar{display:none;position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 8px);z-index:999;background:#fff;color:var(--navy);padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;box-shadow:0 2px 12px rgba(11,29,58,.2)}
+
+main{padding:16px 16px 120px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--muted);padding:6px 2px 0}
+
+.search{width:100%;height:48px;padding:0 16px;border:1px solid var(--line);border-radius:14px;background:#fff;font-size:16px;outline:none}
+.search:focus{border-color:var(--navy)}
+
+.banner{display:flex;align-items:center;gap:12px;padding:14px 16px;min-height:64px;background:#fff;border-radius:14px;text-align:left;width:100%}
+.banner.red{border:1.5px solid var(--red)}
+.banner.lav{border:1.5px dashed #9C88CF;background:#FBF9FE}
+.bnum{width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.red .bnum{background:var(--red);color:#fff}
+.lav .bnum{background:var(--lavbg);color:var(--lavtext)}
+.btext{flex:1;display:flex;flex-direction:column;gap:2px}
+.btitle{font-size:15px;font-weight:600}
+.bsub{font-size:13px;color:var(--muted)}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tile{display:flex;flex-direction:column;justify-content:space-between;gap:16px;min-height:124px;padding:16px;background:#fff;border:1px solid var(--line);border-radius:16px;text-align:left}
+.tile:active,.banner:active,.row:active{transform:scale(.99)}
+.tname{font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:600;line-height:1.15}
+.tmeta{font-size:12px;color:var(--muted);margin-top:3px}
+.pill{align-self:flex-start;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.pill.bad{background:var(--red);color:#fff}
+.pill.ok{background:var(--lavbg);color:var(--lavtext)}
+
+.row{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;background:#fff;border:1px solid var(--line);border-radius:14px}
+.row.flash{box-shadow:0 0 0 3px var(--lav)}
+.rinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;background:none;border:0;text-align:left;padding:4px 0}
+.rname{font-size:15px;font-weight:600;line-height:1.25}
+.rmeta{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-weight:700;color:var(--red)}
+.changed{font-weight:600;color:var(--lavtext)}
+.step{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.sb{width:44px;height:44px;border:0;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.sb.minus{background:var(--lavbg);color:var(--navy)}
+.sb.plus{background:var(--navy);color:#fff}
+.qty{width:52px;height:44px;border:1px solid transparent;border-radius:10px;background:transparent;text-align:center;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;outline:none;-moz-appearance:textfield}
+.qty::-webkit-outer-spin-button,.qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qty:focus{border-color:var(--navy);background:#fff}
+.qty.low{color:var(--red)}
+.need{display:flex;flex-direction:column;align-items:flex-end}
+.need small{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.need b{font-size:20px;color:var(--red);font-variant-numeric:tabular-nums}
+.rsel{height:44px;max-width:150px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:14px}
+
+.ordbtn{flex-shrink:0;height:40px;padding:0 12px;border-radius:10px;border:1.5px solid var(--navy);background:#fff;color:var(--navy);font-size:13px;font-weight:600}
+.ordbtn.done{border-color:transparent;background:var(--lavbg);color:var(--lavtext)}
+.footer{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:12px 16px calc(env(safe-area-inset-bottom) + 16px);z-index:40}
+.cta{width:100%;height:54px;border:0;border-radius:14px;background:var(--red);color:#fff;font-size:16px;font-weight:600}
+.cta:disabled{opacity:.5}
+.ghost{width:100%;height:48px;border:1px solid var(--line);border-radius:14px;background:#fff;font-size:15px;font-weight:600;margin-top:8px}
+.textbtn{background:none;border:0;color:var(--lavtext);font-weight:600;font-size:14px;padding:12px;text-decoration:underline;text-underline-offset:3px}
+.empty{padding:28px 16px;text-align:center;color:var(--muted);font-size:15px}
+
+.mo{position:fixed;inset:0;background:rgba(11,29,58,.45);z-index:300;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.mo.open{opacity:1;pointer-events:all}
+.modal{background:#fff;width:100%;max-width:720px;border-radius:22px 22px 0 0;padding:22px 20px calc(env(safe-area-inset-bottom) + 28px);transform:translateY(100%);transition:transform .25s ease;max-height:90vh;overflow-y:auto}
+.mo.open .modal{transform:none}
+.mt{font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:700;margin-bottom:16px}
+.fg{margin-bottom:14px;flex:1}
+.fg label{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.fg input,.fg select{width:100%;height:48px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font-size:16px;outline:none}
+.fg input:focus,.fg select:focus{border-color:var(--navy)}
+.fr{display:flex;gap:10px}
+.del{background:none;border:0;color:var(--red);font-weight:600;font-size:14px;padding:12px 0;margin-top:6px}
+
+/* ── home extras ── */
+.hdate{font-size:14px;color:var(--sub);margin-top:4px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+.stat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;min-height:64px;border-radius:12px;border:1px solid rgba(200,184,232,.25);background:rgba(255,255,255,.06);color:#fff;text-align:left}
+.stat b{font-size:24px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--sub);font-weight:500}
+.stat.out b{color:#FF8A9A}
+.stat:active{background:rgba(255,255,255,.12)}
+.searchwrap{position:relative}
+.searchwrap svg{position:absolute;left:14px;top:14px;color:var(--muted);pointer-events:none}
+.searchwrap .search{padding-left:42px}
+.next{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:18px;background:var(--lavbg);border:1px solid #D9CCF0}
+.next .ey{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--lavtext)}
+.next .nt{font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:700;line-height:1.15;margin-top:4px}
+.next .ns{font-size:14px;color:var(--lavtext);margin-top:4px}
+.next .go{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border:0;border-radius:12px;background:var(--navy);color:#fff;font-size:16px;font-weight:600}
+.alerts{display:flex;flex-direction:column;gap:8px}
+.alert{display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:56px;border-radius:12px;background:#fff;border:1px solid var(--line);text-align:left;width:100%}
+.alert .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.alert.red .ic{background:#FBE7EA;color:var(--red)}
+.alert.lav .ic{background:var(--lavbg);color:var(--lavtext)}
+.alert .at{flex:1;font-size:14px;font-weight:600}
+.alert .at small{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:1px}
+.tile2{display:flex;flex-direction:column;gap:12px;min-height:150px;padding:14px;background:#fff;border:1px solid var(--line);border-radius:16px;text-align:left}
+.tile2:active{transform:scale(.99)}
+.tile2.bad{border-color:#F0B9C2}
+.ttop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.ticon{width:40px;height:40px;border-radius:12px;background:var(--lavbg);color:var(--lavtext);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tile2.bad .ticon{background:#FBE7EA;color:var(--red)}
+.tbadge{padding:4px 9px;border-radius:999px;font-size:12px;font-weight:700;background:var(--red);color:#fff}
+.tbadge.ok{background:transparent;color:var(--lavtext);padding:4px 0;font-weight:600}
+.tn{font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:600;line-height:1.15}
+.bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:#EEEAF5}
+.bar i{display:block;height:100%}
+.bar .o{background:var(--red)}.bar .l{background:#F08A9A}.bar .k{background:var(--navy)}
+.tfoot{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--muted)}
+.tfoot .stale{color:var(--red);font-weight:600}
+.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.qa{display:flex;align-items:center;gap:10px;height:56px;padding:0 14px;border-radius:14px;border:1px solid var(--line);background:#fff;font-size:14px;font-weight:600;text-align:left}
+.qa svg{color:var(--lavtext);flex-shrink:0}
+.emptyrooms{font-size:13px;color:var(--muted);text-align:center;padding:4px}
+
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translateX(-50%) translateY(16px);background:var(--navy);color:#fff;font-size:14px;font-weight:500;padding:12px 18px;border-radius:12px;opacity:0;pointer-events:none;transition:all .25s;z-index:400;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<div id="syncBar"></div>
+<header><div class="wrap" id="head"></div></header>
+<main><div class="wrap" id="view"></div></main>
+<div class="footer" id="footer" style="display:none"><div class="wrap" id="footInner"></div></div>
+
+<div class="mo" id="mItem">
+  <div class="modal">
+    <div class="mt" id="miTitle">Edit item</div>
+    <div class="fg"><label for="fName">Item name</label><input type="text" id="fName" placeholder="e.g. Gloves M"></div>
+    <div class="fr">
+      <div class="fg"><label for="fLoc">Room</label><select id="fLoc"></select></div>
+      <div class="fg"><label for="fUnit">Unit</label><input type="text" id="fUnit" placeholder="boxes, bags…"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label for="fQty">On hand</label><input type="number" inputmode="numeric" id="fQty" min="0"></div>
+      <div class="fg"><label for="fLow">Low alert at or below</label><input type="number" inputmode="numeric" id="fLow" min="0"></div>
+    </div>
+    <div class="fg"><label for="fCat">Category</label><select id="fCat"></select></div>
+    <button class="cta" id="fSave">Save</button>
+    <button class="ghost" id="fCancel">Cancel</button>
+    <button class="del" id="fDel">Delete this item</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+var API_URL = 'https://script.google.com/macros/s/AKfycbw5gWM-YL1AhJsBCeyTXoxUBvs9jIpkO1Rd-iek-GCdPgM8qIlKjj_vOPXzMb1txsae/exec';
+var STORAGE_KEY = 'smileservices_v4';
+
+// Rooms shown as tiles, in this order. Edit names here to match the office.
+var ROOMS = ['Op 1', 'Op 2', 'Op 3', 'Surgery', 'Sterilization', 'Lab', 'Supply Closet', 'Front Desk'];
+
+var CATS = ['Surgical & Sutures','Sterilization','Gauze & Wound Care','Impression Materials',
+  'Restorative & Cements','Burs & Instruments','Suction & Evacuation','PPE & Barriers','Misc & Office'];
+
+// ── STATE ─────────────────────────────────────────────────────
+var items = [];
+var view = 'home';      // home | room | reorder | sort
+var room = null;        // current room name
+var draft = {};         // id -> qty typed in the current room count (unsaved)
+var query = '';
+var syncing = false;
+var editId = null;
+var flashId = null;
+
+// ── HELPERS ───────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function find(id) { for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i]; return null; }
+function qtyOf(it) { return draft.hasOwnProperty(it.id) ? draft[it.id] : it.qty; }
+function status(q, lowAt) { return q === 0 ? 'out' : (q <= lowAt ? 'low' : 'ok'); }
+function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function niceDate(s) {
+  if (!s) return '';
+  var p = String(s).slice(0, 10).split('-'); if (p.length < 3) return '';
+  var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(p[1], 10) - 1];
+  return m ? m + ' ' + parseInt(p[2], 10) : '';
+}
+function allRooms() {
+  var list = ROOMS.slice();
+  items.forEach(function (it) { if (it.loc && list.indexOf(it.loc) === -1) list.push(it.loc); });
+  return list;
+}
+function inRoom(r) { return items.filter(function (it) { return it.loc === r; }).sort(function (a, b) { return a.name.localeCompare(b.name); }); }
+function unassigned() { return items.filter(function (it) { return !it.loc; }); }
+function known(it) { return !!(it.counted || it.ordered); }  // never-counted items have an unknown quantity
+function lowItems() { return items.filter(function (it) { return known(it) && status(it.qty, it.lowAt) !== 'ok'; }); }
+function dirtyCount() { return Object.keys(draft).filter(function (id) { var it = find(id); return it && it.qty !== draft[id]; }).length; }
+
+var ICON_BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>';
+var ICON_NEXT = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+var ICON_MINUS = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>';
+var ICON_PLUS = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+
+// ── SYNC ──────────────────────────────────────────────────────
+function syncMsg(msg, ms) {
+  var b = $('syncBar'); b.textContent = msg; b.style.display = 'block';
+  clearTimeout(syncMsg.t); if (ms) syncMsg.t = setTimeout(function () { b.style.display = 'none'; }, ms);
+}
+function syncHide() { $('syncBar').style.display = 'none'; }
+
+function api(payload) {
+  return fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }).then(function (r) { return r.json(); });
+}
+
+function normalize(list) {
+  return list.map(function (it) {
+    return { id: String(it.id), name: String(it.name || ''), cat: String(it.cat || ''), unit: String(it.unit || ''),
+      qty: parseFloat(it.qty) || 0, lowAt: parseFloat(it.lowAt) || 0, loc: String(it.loc || ''), counted: String(it.counted || ''), ordered: String(it.ordered || '') };
+  });
+}
+
+function loadFromSheet(first) {
+  if (first) syncMsg('Syncing…');
+  return fetch(API_URL + '?action=getAll')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success && data.items && data.items.length) {
+        items = normalize(data.items);
+        saveLocal();
+      } else if (first) {
+        items = loadLocal();
+      }
+      syncHide();
+      render();
+    })
+    .catch(function () {
+      if (first) { items = loadLocal(); render(); }
+      syncMsg('Offline — showing saved copy', 3000);
+    });
+}
+
+function saveLocal() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (e) {} }
+function loadLocal() { try { var s = localStorage.getItem(STORAGE_KEY); return s ? normalize(JSON.parse(s)) : []; } catch (e) { return []; } }
+
+function pushItems(list, roomName) {
+  saveLocal();
+  syncing = true;
+  syncMsg('Saving…');
+  return api({ action: 'updateMany', items: list, room: roomName || '' })
+    .then(function (res) {
+      if (res && res.error && /Unknown action/.test(res.error)) {
+        // Older backend still deployed — fall back to one-by-one saves.
+        return Promise.all(list.map(function (it) { return api({ action: 'updateItem', item: it }); }));
+      }
+      if (res && res.error) throw new Error(res.error);
+    })
+    .then(function () { syncing = false; syncMsg('Saved', 1200); })
+    .catch(function () { syncing = false; syncMsg('Could not save — check connection', 4000); });
+}
+
+function pushAll() {
+  saveLocal(); syncing = true; syncMsg('Saving…');
+  return api({ action: 'saveAll', items: items })
+    .then(function () { syncing = false; syncMsg('Saved', 1200); })
+    .catch(function () { syncing = false; syncMsg('Could not save — check connection', 4000); });
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────
+function go(v, r) {
+  if (view === 'room' && dirtyCount() && !(v === 'room' && r === room)) {
+    if (!confirm('You have unsaved counts in ' + room + '. Leave without saving?')) return;
+  }
+  draft = {};
+  view = v; room = r || null;
+  var url = location.pathname + (v === 'room' ? '?room=' + encodeURIComponent(room) : v !== 'home' ? '?view=' + v : '');
+  try { history.replaceState(null, '', url); } catch (e) {}
+  window.scrollTo(0, 0);
+  render();
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render() {
+  if (view === 'room') renderRoom();
+  else if (view === 'reorder') renderReorder();
+  else if (view === 'sort') renderSort();
+  else renderHome();
+}
+
+function header(title, sub, withBack) {
+  document.querySelector('header').style.position = 'sticky';
+  $('head').innerHTML =
+    (withBack ? '<button class="back" data-go="home" aria-label="Back to rooms">' + ICON_BACK + '</button>'
+              : '<div class="eyebrow">SSONY · Manhasset</div>') +
+    '<h1>' + esc(title) + '</h1>' + (sub ? '<div class="hsub">' + esc(sub) + '</div>' : '');
+}
+
+function footer(html) {
+  $('footer').style.display = html ? 'block' : 'none';
+  $('footInner').innerHTML = html || '';
+}
+
+var ICONS = {
+  op: '<path d="M4 18h9a3 3 0 0 0 3-3v-1H8L5 7H3v5l2 6z"/><path d="M16 14h3l2-4"/><path d="M8 18v3M13 18v3"/>',
+  surgery: '<path d="M4 20 15 9"/><path d="m15 9 3-3a2.1 2.1 0 0 1 3 3l-3 3-3-3z"/><path d="M4 20h5"/>',
+  steri: '<rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="12" cy="13" r="3"/><path d="M7 4v3M12 3v4M17 4v3"/>',
+  lab: '<path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/>',
+  front: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  box: '<path d="M21 8 12 3 3 8v8l9 5 9-5V8z"/><path d="m3 8 9 5 9-5M12 13v8"/>'
+};
+function roomIcon(r, size) {
+  var n = r.toLowerCase(), k = /^op|operat/.test(n) ? 'op' : /surg/.test(n) ? 'surgery' : /steril|steri/.test(n) ? 'steri' :
+    /lab/.test(n) ? 'lab' : /front|desk|office|reception/.test(n) ? 'front' : 'box';
+  size = size || 22;
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>';
+}
+function daysSince(s) {
+  if (!s) return null;
+  var p = String(s).slice(0, 10).split('-'); if (p.length < 3) return null;
+  var d = new Date(+p[0], +p[1] - 1, +p[2]), t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((t - d) / 86400000);
+}
+function agoText(n) { return n === null ? 'Never counted' : n <= 0 ? 'Counted today' : n === 1 ? 'Counted yesterday' : 'Counted ' + n + ' days ago'; }
+function roomInfo(r) {
+  var list = inRoom(r), out = 0, low = 0, last = '';
+  list.forEach(function (it) { var s = known(it) ? status(it.qty, it.lowAt) : 'ok'; if (s === 'out') out++; else if (s === 'low') low++; if (it.counted > last) last = it.counted; });
+  // A room counts as "counted" on the date its oldest item was last counted.
+  var oldest = list.length && list.every(function (it) { return it.counted; }) ? list.reduce(function (m, it) { return it.counted < m ? it.counted : m; }, '9999') : '';
+  return { name: r, n: list.length, out: out, low: low, ok: list.length - out - low, days: daysSince(oldest) };
+}
+var I_SEARCH = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+var I_LIST = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>';
+var I_ADD = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>';
+var I_WARN = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>';
+var I_PIN = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+
+function renderHome() {
+  footer('');
+  document.querySelector('header').style.position = 'static';
+  var out = items.filter(function (it) { return known(it) && it.qty === 0; }).length;
+  var low = lowItems().length - out, ok = items.filter(known).length - out - low, un = unassigned();
+  var dn = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  $('head').innerHTML = '<div class="eyebrow">SSONY · Manhasset</div><h1>Inventory</h1><div class="hdate">' + dn + '</div>' +
+    '<div class="stats">' +
+      '<button class="stat out" data-go="reorder"><b>' + out + '</b><span>Out</span></button>' +
+      '<button class="stat" data-go="reorder"><b>' + low + '</b><span>Low</span></button>' +
+      '<div class="stat"><b>' + ok + '</b><span>Stocked</span></div>' +
+    '</div>';
+
+  var h = '<div class="stack">';
+  h += '<div class="searchwrap">' + I_SEARCH + '<input class="search" id="searchBox" type="search" placeholder="Find an item and where it is…" aria-label="Find an item" value="' + esc(query) + '"></div>';
+
+  if (query) {
+    var q = query.toLowerCase();
+    var res = items.filter(function (it) { return it.name.toLowerCase().indexOf(q) !== -1; }).slice(0, 40);
+    h += '<div class="label">Results</div>';
+    if (!res.length) h += '<div class="empty">No items match “' + esc(query) + '”.</div>';
+    res.forEach(function (it) {
+      var s = status(it.qty, it.lowAt);
+      h += '<button class="banner" style="border:1px solid var(--line)" data-find="' + esc(it.id) + '">' +
+        '<div class="btext"><div class="btitle">' + esc(it.name) + '</div>' +
+        '<div class="bsub">' + esc(it.loc || 'No room yet') + ' · ' + it.qty + ' ' + esc(it.unit) +
+        (s !== 'ok' ? ' · <span class="tag">' + s.toUpperCase() + '</span>' : '') + '</div></div>' + ICON_NEXT + '</button>';
+    });
+    h += '</div>';
+    $('view').innerHTML = h;
+    return;
+  }
+
+  var rooms = allRooms().map(roomInfo);
+  var filled = rooms.filter(function (r) { return r.n; });
+  var emptyRooms = rooms.filter(function (r) { return !r.n; });
+
+  // "Count this next": never-counted first, then oldest count, then most low items.
+  var todo = filled.filter(function (r) { return r.days === null || r.days >= 1; }).sort(function (a, b) {
+    var da = a.days === null ? 9999 : a.days, db = b.days === null ? 9999 : b.days;
+    return db - da || (b.out + b.low) - (a.out + a.low);
+  });
+  if (todo.length) {
+    var t = todo[0];
+    h += '<div class="next"><div><div class="ey">Count this next</div><div class="nt">' + esc(t.name) + '</div>' +
+      '<div class="ns">' + t.n + ' items · ' + agoText(t.days) + (t.out + t.low ? ' · ' + (t.out + t.low) + ' low' : '') + '</div></div>' +
+      '<button class="go" data-room="' + esc(t.name) + '">Start count ' + ICON_NEXT + '</button></div>';
+  } else if (filled.length) {
+    h += '<div class="next"><div><div class="ey">All caught up</div><div class="nt">Every room counted today</div></div></div>';
+  }
+
+  if (un.length || out + low) {
+    h += '<div class="alerts">';
+    if (out + low) h += '<button class="alert red" data-go="reorder"><div class="ic">' + I_WARN + '</div><div class="at">' + (out + low) + ' items need reordering<small>' +
+      (out ? out + ' out, ' : '') + low + ' low · see the list</small></div>' + ICON_NEXT + '</button>';
+    if (un.length) h += '<button class="alert lav" data-go="sort"><div class="ic">' + I_PIN + '</div><div class="at">' + un.length + (un.length === 1 ? ' item has' : ' items have') + ' no room yet<small>Pick where each one is kept</small></div>' + ICON_NEXT + '</button>';
+    h += '</div>';
+  }
+
+  var shown = filled.length ? filled : rooms;
+  h += '<div class="label">Rooms</div><div class="grid">';
+  shown.forEach(function (r) {
+    var bad = r.out + r.low, stale = r.n && (r.days === null || r.days > 7);
+    var bar = r.n ? '<div class="bar" aria-hidden="true"><i class="o" style="width:' + (r.out / r.n * 100) + '%"></i><i class="l" style="width:' + (r.low / r.n * 100) + '%"></i><i class="k" style="width:' + (r.ok / r.n * 100) + '%"></i></div>' : '<div class="bar" aria-hidden="true"></div>';
+    h += '<button class="tile2' + (bad ? ' bad' : '') + '" data-room="' + esc(r.name) + '">' +
+      '<div class="ttop"><div class="ticon">' + roomIcon(r.name) + '</div>' +
+        (bad ? '<span class="tbadge">' + bad + ' low</span>' : r.n ? '<span class="tbadge ok">All good</span>' : '') + '</div>' +
+      '<div class="tn">' + esc(r.name) + '</div>' + bar +
+      '<div class="tfoot"><span>' + r.n + (r.n === 1 ? ' item' : ' items') + '</span>' +
+        (r.n ? '<span class="' + (stale ? 'stale' : '') + '">' + (r.days === null ? 'Not counted' : r.days <= 0 ? 'Today' : r.days + 'd ago') + '</span>' : '') + '</div>' +
+    '</button>';
+  });
+  h += '</div>';
+  if (filled.length && emptyRooms.length) {
+    h += '<div class="emptyrooms">No items yet: ' + emptyRooms.map(function (r) { return esc(r.name); }).join(', ') + '</div>';
+  }
+
+  h += '<div class="label">Quick actions</div><div class="quick">' +
+    '<button class="qa" id="addBtn">' + I_ADD + 'Add item</button>' +
+    '<button class="qa" data-go="reorder">' + I_LIST + 'Reorder list</button></div>';
+  h += '</div>';
+  $('view').innerHTML = h;
+}
+
+function renderRoom() {
+  var list = inRoom(room);
+  header(room, 'Type or tap the count. Red means low.', true);
+  var h = '<div class="stack">';
+  if (!list.length) h += '<div class="empty">No items in this room yet. Use “Add a new item” on the home screen, or edit an item and pick this room.</div>';
+  list.forEach(function (it) {
+    var q = qtyOf(it), s = status(q, it.lowAt), ch = draft.hasOwnProperty(it.id) && draft[it.id] !== it.qty;
+    h += '<div class="row' + (flashId === it.id ? ' flash' : '') + '" id="row-' + esc(it.id) + '">' +
+      '<button class="rinfo" data-edit="' + esc(it.id) + '" aria-label="Edit ' + esc(it.name) + '">' +
+        '<span class="rname">' + esc(it.name) + '</span>' +
+        '<span class="rmeta"><span>' + esc(it.unit) + ' · alert ≤ ' + it.lowAt + '</span>' +
+        (s !== 'ok' ? '<span class="tag">' + s.toUpperCase() + '</span>' : '') +
+        (ch ? '<span class="changed">was ' + it.qty + '</span>' : '') + '</span>' +
+      '</button>' +
+      '<div class="step">' +
+        '<button class="sb minus" data-dec="' + esc(it.id) + '" aria-label="One less ' + esc(it.name) + '">' + ICON_MINUS + '</button>' +
+        '<input class="qty' + (s !== 'ok' ? ' low' : '') + '" type="number" inputmode="numeric" pattern="[0-9]*" min="0" data-qty="' + esc(it.id) + '" value="' + q + '" aria-label="Count for ' + esc(it.name) + '">' +
+        '<button class="sb plus" data-inc="' + esc(it.id) + '" aria-label="One more ' + esc(it.name) + '">' + ICON_PLUS + '</button>' +
+      '</div></div>';
+  });
+  h += '</div>';
+  $('view').innerHTML = h;
+  var d = dirtyCount();
+  footer(list.length ? '<button class="cta" id="saveCount">' + (d ? 'Save count (' + d + (d === 1 ? ' change)' : ' changes)') : 'Save count — no changes') + '</button>' : '');
+  if (flashId) {
+    var el = $('row-' + flashId);
+    if (el) el.scrollIntoView({ block: 'center' });
+    var fid = flashId; flashId = null;
+    setTimeout(function () { var r2 = $('row-' + fid); if (r2) r2.classList.remove('flash'); }, 2500);
+  }
+}
+
+function updateRowUI(id) {
+  // Update one row in place so the keyboard doesn't close while typing.
+  var it = find(id); if (!it) return;
+  var q = qtyOf(it), s = status(q, it.lowAt);
+  var input = document.querySelector('[data-qty="' + CSS.escape(id) + '"]');
+  if (input && document.activeElement !== input) input.value = q;
+  if (input) input.classList.toggle('low', s !== 'ok');
+  var row = $('row-' + id);
+  if (row) {
+    var ch = draft.hasOwnProperty(id) && draft[id] !== it.qty;
+    row.querySelector('.rmeta').innerHTML = '<span>' + esc(it.unit) + ' · alert ≤ ' + it.lowAt + '</span>' +
+      (s !== 'ok' ? '<span class="tag">' + s.toUpperCase() + '</span>' : '') +
+      (ch ? '<span class="changed">was ' + it.qty + '</span>' : '');
+  }
+  var d = dirtyCount(), btn = $('saveCount');
+  if (btn) btn.textContent = d ? 'Save count (' + d + (d === 1 ? ' change)' : ' changes)') : 'Save count — no changes';
+}
+
+function renderReorder() {
+  var low = lowItems();
+  header('Reorder list', 'Daily reminder emails continue until each item is restocked', true);
+  var groups = {};
+  low.forEach(function (it) { var k = it.loc || 'No room yet'; (groups[k] = groups[k] || []).push(it); });
+  var order = allRooms().concat(['No room yet']).filter(function (r) { return groups[r]; });
+  var h = '<div class="stack">';
+  if (!low.length) h += '<div class="empty">Everything is above its low alert.</div>';
+  order.forEach(function (r) {
+    h += '<div class="label">' + esc(r) + '</div>';
+    groups[r].sort(function (a, b) { return a.qty - b.qty; }).forEach(function (it) {
+      var s = status(it.qty, it.lowAt);
+      h += '<div class="row"><button class="rinfo" data-edit="' + esc(it.id) + '"><span class="rname">' + esc(it.name) + '</span>' +
+        '<span class="rmeta"><span>' + (s === 'out' ? '<span class="tag">OUT</span>' : 'have ' + it.qty) + ' · alert ≤ ' + it.lowAt + ' ' + esc(it.unit) + '</span></span></button>' +
+        (it.ordered
+          ? '<button class="ordbtn done" data-unorder="' + esc(it.id) + '" aria-label="Undo ordered for ' + esc(it.name) + '">Ordered ' + niceDate(it.ordered) + '</button>'
+          : '<button class="ordbtn" data-order="' + esc(it.id) + '">Mark ordered</button>') + '</div>';
+    });
+  });
+  h += '</div>';
+  $('view').innerHTML = h;
+  var notOrdered = low.filter(function (it) { return !it.ordered; }).length;
+  footer(low.length ? (notOrdered ? '<button class="cta" id="orderAll">Mark all ' + notOrdered + ' as ordered</button>' : '') + '<button class="ghost" id="emailList">Email this list now</button>' : '');
+}
+
+function renderSort() {
+  var un = unassigned();
+  header('Sort into rooms', 'Pick where each item is kept. It saves right away.', true);
+  var h = '<div class="stack">';
+  if (!un.length) h += '<div class="empty">All items have a room.</div>';
+  var byCat = {};
+  un.forEach(function (it) { (byCat[it.cat || 'Other'] = byCat[it.cat || 'Other'] || []).push(it); });
+  Object.keys(byCat).forEach(function (c) {
+    h += '<div class="label">' + esc(c) + '</div>';
+    byCat[c].forEach(function (it) {
+      h += '<div class="row"><div class="rinfo"><span class="rname">' + esc(it.name) + '</span><span class="rmeta">' + esc(it.unit) + '</span></div>' +
+        '<select class="rsel" data-assign="' + esc(it.id) + '" aria-label="Room for ' + esc(it.name) + '"><option value="">Pick room…</option>' +
+        allRooms().map(function (r) { return '<option>' + esc(r) + '</option>'; }).join('') + '</select></div>';
+    });
+  });
+  h += '</div>';
+  $('view').innerHTML = h;
+  footer('');
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────
+function setDraft(id, n) {
+  var it = find(id); if (!it) return;
+  n = Math.max(0, parseInt(n, 10) || 0);
+  if (n === it.qty) delete draft[id]; else draft[id] = n;
+  updateRowUI(id);
+}
+
+function saveCount() {
+  var list = inRoom(room);
+  var stamp = today();
+  var changed = dirtyCount();
+  list.forEach(function (it) { it.qty = qtyOf(it); it.counted = stamp; if (it.qty > it.lowAt) it.ordered = ''; });
+  draft = {};
+  pushItems(list, room);
+  var r = room;
+  view = 'home'; room = null;
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  render();
+  toast(r + ' counted' + (changed ? ' · ' + changed + (changed === 1 ? ' change' : ' changes') + ' saved' : ' · no changes'));
+}
+
+function emailList() {
+  var b = $('emailList'); if (b) { b.disabled = true; b.textContent = 'Sending…'; }
+  api({ action: 'emailReorder' })
+    .then(function (res) {
+      if (res && res.error) throw new Error(res.error);
+      toast('Reorder list emailed to the office');
+    })
+    .catch(function () { toast('Could not send — the backend may need updating'); })
+    .then(function () { if (b) { b.disabled = false; b.textContent = 'Email this list now'; } });
+}
+
+function setOrdered(list, val) {
+  list = list.filter(Boolean); if (!list.length) return;
+  list.forEach(function (it) { it.ordered = val; });
+  pushItems(list);
+  render();
+  toast(val ? (list.length === 1 ? list[0].name + ' marked ordered' : list.length + ' items marked ordered') : 'Marked as not ordered');
+}
+
+function assignRoom(id, r) {
+  var it = find(id); if (!it || !r) return;
+  it.loc = r;
+  pushItems([it]);
+  render();
+  toast(it.name + ' → ' + r);
+}
+
+// ── ITEM MODAL ────────────────────────────────────────────────
+function openItem(id) {
+  editId = id;
+  var it = id ? find(id) : { name: '', unit: '', qty: 0, lowAt: 5, loc: room || '', cat: CATS[CATS.length - 1] };
+  $('miTitle').textContent = id ? 'Edit item' : 'Add item';
+  $('fName').value = it.name; $('fUnit').value = it.unit;
+  $('fQty').value = id ? qtyOf(it) : ''; $('fLow').value = it.lowAt;
+  $('fLoc').innerHTML = '<option value="">No room yet</option>' + allRooms().map(function (r) { return '<option' + (r === it.loc ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('');
+  var cats = CATS.slice(); if (it.cat && cats.indexOf(it.cat) === -1) cats.push(it.cat);
+  $('fCat').innerHTML = cats.map(function (c) { return '<option' + (c === it.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('');
+  $('fDel').style.display = id ? 'block' : 'none';
+  $('mItem').classList.add('open');
+  if (!id) setTimeout(function () { $('fName').focus(); }, 250);
+}
+function closeItem() { $('mItem').classList.remove('open'); editId = null; }
+
+function saveItemModal() {
+  var name = $('fName').value.trim();
+  if (!name) { $('fName').focus(); return; }
+  var it = editId ? find(editId) : { id: uid(), counted: '' };
+  it.name = name;
+  it.unit = $('fUnit').value.trim() || 'units';
+  it.loc = $('fLoc').value;
+  it.cat = $('fCat').value;
+  it.lowAt = Math.max(0, parseInt($('fLow').value, 10) || 0);
+  var q = $('fQty').value;
+  if (q !== '') { it.qty = Math.max(0, parseInt(q, 10) || 0); it.counted = today(); } else if (!editId) it.qty = 0;
+  if (it.qty > it.lowAt) it.ordered = '';
+  if (editId) delete draft[editId]; else items.push(it);
+  closeItem();
+  pushItems([it]);
+  render();
+  toast(name + ' saved');
+}
+
+function deleteItem() {
+  var it = find(editId); if (!it) return;
+  if (!confirm('Remove "' + it.name + '" from inventory?')) return;
+  items = items.filter(function (x) { return x.id !== editId; });
+  delete draft[editId];
+  closeItem();
+  pushAll();
+  render();
+  toast(it.name + ' removed');
+}
+
+function toast(msg) {
+  var t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(function () { t.classList.remove('show'); }, 2600);
+}
+
+// ── EVENTS ────────────────────────────────────────────────────
+document.addEventListener('click', function (e) {
+  var el = e.target.closest('button'); if (!el) return;
+  var d = el.dataset;
+  if (d.go) return go(d.go);
+  if (d.room) return go('room', d.room);
+  if (d.find) { var it = find(d.find); query = ''; if (it && it.loc) { flashId = it.id; go('room', it.loc); } else openItem(d.find); return; }
+  if (d.edit) return openItem(d.edit);
+  if (d.inc) { var a = find(d.inc); return setDraft(d.inc, qtyOf(a) + 1); }
+  if (d.dec) { var b = find(d.dec); return setDraft(d.dec, qtyOf(b) - 1); }
+  if (el.id === 'saveCount') return saveCount();
+  if (el.id === 'emailList') return emailList();
+  if (d.order) return setOrdered([find(d.order)], today());
+  if (d.unorder) return setOrdered([find(d.unorder)], '');
+  if (el.id === 'orderAll') return setOrdered(lowItems().filter(function (it) { return !it.ordered; }), today());
+  if (el.id === 'addBtn') return openItem(null);
+});
+
+document.addEventListener('input', function (e) {
+  if (e.target.id === 'searchBox') {
+    query = e.target.value;
+    var pos = e.target.selectionStart;
+    renderHome();
+    var box = $('searchBox'); box.focus(); try { box.setSelectionRange(pos, pos); } catch (x) {}
+  } else if (e.target.dataset.qty) {
+    if (e.target.value === '') return;
+    setDraft(e.target.dataset.qty, e.target.value);
+  }
+});
+
+document.addEventListener('focusin', function (e) { if (e.target.dataset && e.target.dataset.qty) e.target.select(); });
+document.addEventListener('focusout', function (e) {
+  if (e.target.dataset && e.target.dataset.qty) { var it = find(e.target.dataset.qty); if (it) e.target.value = qtyOf(it); }
+});
+document.addEventListener('keydown', function (e) {
+  // Enter jumps to the next count box — fast keyboard counting.
+  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.qty) {
+    e.preventDefault();
+    var all = Array.prototype.slice.call(document.querySelectorAll('[data-qty]'));
+    var next = all[all.indexOf(e.target) + 1];
+    if (next) next.focus(); else e.target.blur();
+  }
+});
+document.addEventListener('change', function (e) {
+  if (e.target.dataset && e.target.dataset.assign) assignRoom(e.target.dataset.assign, e.target.value);
+});
+
+$('fSave').addEventListener('click', saveItemModal);
+$('fCancel').addEventListener('click', closeItem);
+$('fDel').addEventListener('click', deleteItem);
+$('mItem').addEventListener('click', function (e) { if (e.target === this) closeItem(); });
+
+window.addEventListener('beforeunload', function (e) { if (view === 'room' && dirtyCount()) { e.preventDefault(); e.returnValue = ''; } });
+
+// Refresh from the sheet every 30s — but never while someone is mid-count or editing.
+setInterval(function () {
+  if (syncing || editId !== null || $('mItem').classList.contains('open')) return;
+  if (view === 'room' && Object.keys(draft).length) return;
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  loadFromSheet(false);
+}, 30000);
+
+// ── START ─────────────────────────────────────────────────────
+(function start() {
+  var p = new URLSearchParams(location.search);
+  if (p.get('room')) { view = 'room'; room = p.get('room'); }
+  else if (p.get('view') === 'reorder' || p.get('view') === 'sort') view = p.get('view');
+  items = loadLocal();
+  render();
+  loadFromSheet(true);
+})();
+</script>
+</body>
+</html>
